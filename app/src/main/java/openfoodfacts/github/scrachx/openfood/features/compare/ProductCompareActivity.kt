@@ -25,6 +25,7 @@ import kotlinx.coroutines.rx2.await
 import openfoodfacts.github.scrachx.openfood.R
 import openfoodfacts.github.scrachx.openfood.databinding.ActivityProductComparisonBinding
 import openfoodfacts.github.scrachx.openfood.features.shared.BaseActivity
+import openfoodfacts.github.scrachx.openfood.features.simplescan.SimpleScanActivityContract
 import openfoodfacts.github.scrachx.openfood.images.ProductImage
 import openfoodfacts.github.scrachx.openfood.listeners.CommonBottomListenerInstaller.installBottomNavigation
 import openfoodfacts.github.scrachx.openfood.listeners.CommonBottomListenerInstaller.selectNavigationItem
@@ -48,7 +49,7 @@ class ProductCompareActivity : BaseActivity() {
 
     private val viewModel: ProductCompareViewModel by viewModels()
 
-    private val scanProductContract = registerForActivityResult(ScanProductActivityContract()) { product ->
+    private val scanProductContract = registerForActivityResult(SimpleScanActivityContract()) { product ->
         product?.let { viewModel.addProductToCompare(it) }
     }
 
