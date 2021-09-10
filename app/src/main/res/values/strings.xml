@@ -948,4 +948,9 @@
 
     <string name="title_welcome_matomo">Send anonymous analytics</string>
     <string name="msg_welcome_matomo">Help the Open Food Facts volunteers to improve the app. You decide if you send anonymous analytics.\n\nIf you change your mind this option can be enabled and disabled at any time from the settings.</string>
+
+    <!-- Simple scan activity -->
+    <string name="retry">Retry</string>
+    <string name="product_not_found_title">Product not found</string>
+    <string name="product_not_found_description">Do you want to scan another product?</string>
 </resources>

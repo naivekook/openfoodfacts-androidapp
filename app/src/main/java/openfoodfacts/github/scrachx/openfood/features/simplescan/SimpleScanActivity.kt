@@ -225,9 +225,9 @@ class SimpleScanActivity : AppCompatActivity() {
 
     private fun showManualInputDialog() {
         MaterialDialog.Builder(this@SimpleScanActivity)
-            .title("Problems with scanning?")
-            .content("Enter the barcode manually")
-            .input("type here", null, false) { _, input ->
+            .title(R.string.trouble_scanning)
+            .content(R.string.enter_barcode)
+            .input(null, null, false) { _, input ->
                 viewModel.findProduct(input.toString())
             }
             .inputType(InputType.TYPE_CLASS_NUMBER)
@@ -242,8 +242,8 @@ class SimpleScanActivity : AppCompatActivity() {
 
     private fun showProductNotFoundDialog() {
         MaterialDialog.Builder(this@SimpleScanActivity)
-            .title("Product not found")
-            .content("Do you want to scan another product?")
+            .title(R.string.product_not_found_title)
+            .content(R.string.product_not_found_description)
             .positiveText(R.string.txtYes)
             .onPositive { _, _ ->
                 startScanning()
@@ -259,9 +259,9 @@ class SimpleScanActivity : AppCompatActivity() {
 
     private fun showConnectionErrorDialog() {
         MaterialDialog.Builder(this@SimpleScanActivity)
-            .title("Connection error")
+            .title(R.string.alert_dialog_warning_title)
             .content(R.string.txtConnectionError)
-            .positiveText("Retry again")
+            .positiveText(R.string.retry)
             .onPositive { _, _ ->
                 startScanning()
             }
