@@ -164,7 +164,6 @@ class ProductCompareActivity : BaseActivity() {
 
     companion object {
         const val KEY_PRODUCTS_TO_COMPARE = "products_to_compare"
-        const val KEY_COMPARE_PRODUCT = "compare_product"
 
         @JvmStatic
         fun start(context: Context, product: Product) {

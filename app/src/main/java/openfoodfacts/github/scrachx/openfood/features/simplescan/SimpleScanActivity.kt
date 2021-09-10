@@ -2,16 +2,19 @@
 
 package openfoodfacts.github.scrachx.openfood.features.simplescan
 
+import android.content.Intent
 import android.hardware.Camera
 import android.os.Bundle
+import android.text.InputType
+import android.util.Log
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.afollestad.materialdialogs.MaterialDialog
 import com.google.zxing.ResultPoint
 import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult
@@ -22,6 +25,7 @@ import kotlinx.coroutines.launch
 import openfoodfacts.github.scrachx.openfood.R
 import openfoodfacts.github.scrachx.openfood.databinding.ActivitySimpleScanBinding
 import openfoodfacts.github.scrachx.openfood.features.scan.MlKitCameraView
+import openfoodfacts.github.scrachx.openfood.features.simplescan.SimpleScanActivityContract.Companion.KEY_SCANNED_PRODUCT
 import openfoodfacts.github.scrachx.openfood.models.CameraState
 import openfoodfacts.github.scrachx.openfood.repositories.ScannerPreferencesRepository
 import java.util.concurrent.atomic.AtomicBoolean
@@ -45,17 +49,21 @@ class SimpleScanActivity : AppCompatActivity() {
         binding.scanFlashBtn.setOnClickListener {
             viewModel.changeCameraFlash()
         }
-        binding.scanMoreBtn.setOnClickListener {
-            showMoreSettings(viewModel.scannerOptionsFlow.value)
+        binding.scanFlipCameraBtn.setOnClickListener {
+            viewModel.changeCameraState()
         }
-
-        // TODO
-        // open hint dialog after 15sec of inactivity
+        binding.scanChangeFocusBtn.setOnClickListener {
+            viewModel.changeCameraAutoFocus()
+        }
+        binding.troubleScanningBtn.setOnClickListener {
+            viewModel.troubleScanningPressed()
+        }
 
         lifecycleScope.launch {
             viewModel.scannerOptionsFlow
                 .flowWithLifecycle(lifecycle)
                 .collect { options ->
+                    Log.d("SimpleScanActivity", "options: $options")
                     if (!scannerInitialized.getAndSet(true)) {
                         setupBarcodeScanner(options)
                     }
@@ -67,36 +75,33 @@ class SimpleScanActivity : AppCompatActivity() {
             viewModel.sideEffectsFlow
                 .flowWithLifecycle(lifecycle)
                 .collect { sideEffect ->
+                    Log.d("SimpleScanActivity", "sideEffect: $sideEffect")
                     when (sideEffect) {
                         is SimpleScanViewModel.SideEffect.ProductFound -> {
-                            // TODO
+                            val intent = Intent().putExtra(KEY_SCANNED_PRODUCT, sideEffect.product)
+                            setResult(RESULT_OK, intent)
+                            finish()
                         }
                         is SimpleScanViewModel.SideEffect.ProductNotFound -> {
-                            // TODO
+                            stopScanning()
+                            showProductNotFoundDialog()
                         }
                         is SimpleScanViewModel.SideEffect.ScanTrouble -> {
-                            // TODO
+                            stopScanning()
+                            showManualInputDialog()
+                        }
+                        SimpleScanViewModel.SideEffect.ConnectionError -> {
+                            stopScanning()
+                            showConnectionErrorDialog()
                         }
                     }
-                }
-        }
-
-        lifecycleScope.launch {
-            viewModel.progressFlow
-                .flowWithLifecycle(lifecycle)
-                .collect {
-                    // TODO
                 }
         }
     }
 
     override fun onResume() {
         super.onResume()
-        if (viewModel.scannerOptionsFlow.value.mlScannerEnabled) {
-            mlKitView.onResume()
-        } else {
-            binding.scanBarcodeView.resume()
-        }
+        startScanning()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -104,6 +109,11 @@ class SimpleScanActivity : AppCompatActivity() {
         // status bar will remain visible if user presses home and then reopens the activity
         // hence hiding status bar again
         hideSystemUI()
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+        setResult(RESULT_CANCELED)
     }
 
     private fun hideSystemUI() {
@@ -149,6 +159,12 @@ class SimpleScanActivity : AppCompatActivity() {
         }
 
         // autofocus
+        val focusIconRes = if (options.autoFocusEnabled) {
+            R.drawable.ic_baseline_camera_focus_on_24
+        } else {
+            R.drawable.ic_baseline_camera_focus_off_24
+        }
+        binding.scanChangeFocusBtn.setImageResource(focusIconRes)
         if (options.mlScannerEnabled) {
             mlKitView.updateFocusModeSetting(options.autoFocusEnabled)
         } else {
@@ -161,23 +177,6 @@ class SimpleScanActivity : AppCompatActivity() {
                 resume()
             }
         }
-    }
-
-    private fun showMoreSettings(cameraOptions: SimpleScanScannerOptions) {
-        PopupMenu(this, binding.scanMoreBtn)
-            .apply {
-                menuInflater.inflate(R.menu.simple_scan_menu, menu)
-                menu.findItem(R.id.simple_scan_autofocus).isChecked = cameraOptions.autoFocusEnabled
-                setOnMenuItemClickListener { item ->
-                    when (item.itemId) {
-                        R.id.simple_scan_autofocus -> viewModel.changeCameraAutoFocus()
-                        R.id.simple_scan_trouble -> showManualBarcodeDialog()
-                        R.id.simple_scan_switch_camera -> viewModel.changeCameraState()
-                    }
-                    true
-                }
-            }
-            .show()
     }
 
     private fun setupBarcodeScanner(options: SimpleScanScannerOptions) {
@@ -196,7 +195,7 @@ class SimpleScanActivity : AppCompatActivity() {
                 barcodeView.cameraSettings.requestedCameraId = options.cameraState.value
                 barcodeView.cameraSettings.isAutoFocusEnabled = options.autoFocusEnabled
 
-                decodeSingle(object : BarcodeCallback {
+                decodeContinuous(object : BarcodeCallback {
                     override fun barcodeResult(result: BarcodeResult?) {
                         viewModel.findProduct(result?.text)
                     }
@@ -207,7 +206,70 @@ class SimpleScanActivity : AppCompatActivity() {
         }
     }
 
-    private fun showManualBarcodeDialog() {
-        // TODO
+    private fun stopScanning() {
+        if (viewModel.scannerOptionsFlow.value.mlScannerEnabled) {
+            mlKitView.stopCameraPreview()
+        } else {
+            binding.scanBarcodeView.pause()
+        }
+    }
+
+    private fun startScanning() {
+        if (viewModel.scannerOptionsFlow.value.mlScannerEnabled) {
+            mlKitView.onResume()
+            mlKitView.startCameraPreview()
+        } else {
+            binding.scanBarcodeView.resume()
+        }
+    }
+
+    private fun showManualInputDialog() {
+        MaterialDialog.Builder(this@SimpleScanActivity)
+            .title("Problems with scanning?")
+            .content("Enter the barcode manually")
+            .input("type here", null, false) { _, input ->
+                viewModel.findProduct(input.toString())
+            }
+            .inputType(InputType.TYPE_CLASS_NUMBER)
+            .positiveText(R.string.ok_button)
+            .negativeText(R.string.cancel_button)
+            .onNegative { _, _ ->
+                startScanning()
+            }
+            .build()
+            .show()
+    }
+
+    private fun showProductNotFoundDialog() {
+        MaterialDialog.Builder(this@SimpleScanActivity)
+            .title("Product not found")
+            .content("Do you want to scan another product?")
+            .positiveText(R.string.txtYes)
+            .onPositive { _, _ ->
+                startScanning()
+            }
+            .negativeText(R.string.no_thx)
+            .onNegative { _, _ ->
+                setResult(RESULT_CANCELED)
+                finish()
+            }
+            .build()
+            .show()
+    }
+
+    private fun showConnectionErrorDialog() {
+        MaterialDialog.Builder(this@SimpleScanActivity)
+            .title("Connection error")
+            .content(R.string.txtConnectionError)
+            .positiveText("Retry again")
+            .onPositive { _, _ ->
+                startScanning()
+            }
+            .negativeText(R.string.title_exit)
+            .onNegative { _, _ ->
+                setResult(RESULT_CANCELED)
+                finish()
+            }
+            .show()
     }
 }
