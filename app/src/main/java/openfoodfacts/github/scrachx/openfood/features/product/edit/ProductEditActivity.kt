@@ -26,6 +26,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
 import androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback
@@ -77,6 +78,8 @@ class ProductEditActivity : BaseActivity() {
     private var _binding: ActivityEditProductBinding? = null
     private val binding get() = _binding!!
 
+    private val productEditorViewModel :ProductEditorViewModel by viewModels()
+
     @Inject
     lateinit var client: ProductRepository
 
@@ -112,7 +115,7 @@ class ProductEditActivity : BaseActivity() {
     var initialValues: MutableMap<String, String?>? = null
         private set
 
-    private var mProduct: Product? = null
+//    private var mProduct: Product? = null
     private val productDetails = mutableMapOf<String, String?>()
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -188,7 +191,6 @@ class ProductEditActivity : BaseActivity() {
             override fun onPageSelected(position: Int) = selectPage(position)
         })
 
-        val productState = getProductState()
         var offlineSavedProduct = intent.getSerializableExtra(KEY_EDIT_OFFLINE_PRODUCT) as OfflineSavedProduct?
 
         val mEditProduct = intent.getSerializableExtra(KEY_EDIT_PRODUCT) as Product?
@@ -648,7 +650,6 @@ class ProductEditActivity : BaseActivity() {
         const val KEY_MODIFY_NUTRITION_PROMPT = "modify_nutrition_prompt"
         const val KEY_MODIFY_CATEGORY_PROMPT = "modify_category_prompt"
 
-        const val KEY_EDIT_OFFLINE_PRODUCT = "edit_offline_product"
         const val KEY_EDIT_PRODUCT = "edit_product"
         const val KEY_PRODUCT = "product"
 
@@ -674,26 +675,6 @@ class ProductEditActivity : BaseActivity() {
         ) {
             Intent(context, ProductEditActivity::class.java).apply {
                 putExtra(KEY_EDIT_PRODUCT, product)
-
-                if (sendUpdated) putExtra(KEY_SEND_UPDATED, true)
-                if (performOcr) putExtra(KEY_PERFORM_OCR, true)
-                if (showCategoryPrompt) putExtra(KEY_MODIFY_CATEGORY_PROMPT, true)
-                if (showNutritionPrompt) putExtra(KEY_MODIFY_NUTRITION_PROMPT, true)
-
-                context.startActivity(this)
-            }
-        }
-
-        fun start(
-            context: Context,
-            offlineProduct: OfflineSavedProduct,
-            sendUpdated: Boolean = false,
-            performOcr: Boolean = false,
-            showCategoryPrompt: Boolean = false,
-            showNutritionPrompt: Boolean = false
-        ) {
-            Intent(context, ProductEditActivity::class.java).apply {
-                putExtra(KEY_EDIT_OFFLINE_PRODUCT, offlineProduct)
 
                 if (sendUpdated) putExtra(KEY_SEND_UPDATED, true)
                 if (performOcr) putExtra(KEY_PERFORM_OCR, true)

@@ -28,6 +28,7 @@ import android.widget.Toast
 import android.widget.Toast.LENGTH_SHORT
 import androidx.core.net.toFile
 import androidx.core.text.buildSpannedString
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.canhub.cropper.CropImage
@@ -57,6 +58,7 @@ import openfoodfacts.github.scrachx.openfood.features.product.edit.ProductEditAc
 import openfoodfacts.github.scrachx.openfood.features.product.edit.ProductEditActivity.Companion.KEY_PERFORM_OCR
 import openfoodfacts.github.scrachx.openfood.features.product.edit.ProductEditActivity.Companion.KEY_SEND_UPDATED
 import openfoodfacts.github.scrachx.openfood.features.product.edit.ProductEditFragment
+import openfoodfacts.github.scrachx.openfood.features.product.edit.ProductEditorViewModel
 import openfoodfacts.github.scrachx.openfood.images.ProductImage
 import openfoodfacts.github.scrachx.openfood.models.DaoSession
 import openfoodfacts.github.scrachx.openfood.models.Product
@@ -85,6 +87,7 @@ class EditOverviewFragment : ProductEditFragment() {
     private val binding get() = _binding!!
 
     private val viewModel: EditOverviewViewModel by viewModels()
+    private val productEditorViewModel: ProductEditorViewModel by activityViewModels()
 
     @Inject
     lateinit var daoSession: DaoSession
